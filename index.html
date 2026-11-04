@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>알록달록 낱말 설명 놀이 🎈</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Gaegu & Jua -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #F0F9FF;
+            background-image: radial-gradient(#E0F2FE 2px, transparent 2px);
+            background-size: 24px 24px;
+        }
+
+        .font-hand {
+            font-family: 'Gaegu', cursive;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(-3%); }
+            50% { transform: translateY(3%); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.6); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .card-shadow {
+            box-shadow: 0 12px 0 0 #FCD34D, 0 15px 25px rgba(0,0,0,0.1);
+        }
+        
+        .btn-shadow {
+            box-shadow: 0 6px 0 0 rgba(0,0,0,0.15);
+        }
+        .btn-shadow:active {
+            box-shadow: 0 2px 0 0 rgba(0,0,0,0.15);
+            transform: translateY(4px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-3 md:p-6 text-gray-800 select-none">
+
+    <!-- Top Navigation Header -->
+    <header class="w-full max-w-5xl flex flex-col sm:flex-row items-center justify-between gap-3 mb-2 sm:mb-4">
+        <!-- Title & Badge -->
+        <div class="flex items-center gap-3">
+            <span class="text-4xl sm:text-5xl animate-bounce-slow">🎈</span>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-3xl sm:text-4xl text-amber-500 drop-shadow-sm tracking-wide">알록달록 낱말 놀이</h1>
+                    <span id="total-badge" class="bg-rose-500 text-white font-bold text-xs sm:text-sm px-3 py-1 rounded-full shadow-md animate-pulse">
+                        총 310개+ 단어 수록!
+                    </span>
+                </div>
+                <p class="text-sky-500 font-hand font-bold text-base sm:text-lg">친구들에게 멋지게 단어를 설명해 봐요!</p>
+            </div>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="flex items-center gap-4 bg-white px-5 py-2.5 rounded-full border-4 border-yellow-300 shadow-md">
+            <div class="flex items-center gap-1.5 text-emerald-500 font-bold text-xl sm:text-2xl">
+                <span>⭕ 성공:</span>
+                <span id="score-success" class="text-2xl sm:text-3xl text-emerald-600">0</span>
+            </div>
+            <div class="h-6 w-0.5 bg-gray-200"></div>
+            <div class="flex items-center gap-1.5 text-rose-400 font-bold text-xl sm:text-2xl">
+                <span>⏭️ 패스:</span>
+                <span id="score-pass" class="text-2xl sm:text-3xl text-rose-500">0</span>
+            </div>
+            <button onclick="resetScore()" title="점수 리셋" class="ml-1 text-gray-400 hover:text-gray-600 text-sm underline font-hand">
+                초기화
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col items-center justify-center gap-4">
+        
+        <!-- Controls Bar: Category & Timer Setup -->
+        <div class="w-full bg-white/90 backdrop-blur-sm p-3 sm:p-4 rounded-3xl border-2 border-sky-200 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+            <!-- Category Selection -->
+            <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                <span class="text-gray-700 font-bold shrink-0 text-base">📁 주제:</span>
+                <select id="category-select" onchange="changeCategory()" class="bg-amber-100 text-amber-950 border-2 border-amber-300 font-bold rounded-2xl px-3 py-1.5 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer">
+                    <option value="all">🌈 전체 보기 (310개+)</option>
+                    <option value="animal">🦁 동물 (65개)</option>
+                    <option value="food">🍎 과일 & 음식 (65개)</option>
+                    <option value="vehicle">🚗 탈것 & 교통 (55개)</option>
+                    <option value="object">🎒 사물 & 자연 (75개)</option>
+                    <option value="job_action">👮 직업 & 행동 (50개)</option>
+                </select>
+            </div>
+
+            <!-- Timer Option & Display -->
+            <div class="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                <div class="flex items-center gap-1">
+                    <span class="text-gray-700 font-bold text-base">⏱️ 시간:</span>
+                    <button onclick="setTimerMode('none')" id="timer-btn-none" class="px-3 py-1 rounded-xl text-sm font-bold border-2 border-amber-500 bg-amber-400 text-amber-950">무제한</button>
+                    <button onclick="setTimerMode(30)" id="timer-btn-30" class="px-3 py-1 rounded-xl text-sm font-bold border-2 border-gray-200 bg-gray-100 text-gray-600">30초</button>
+                    <button onclick="setTimerMode(60)" id="timer-btn-60" class="px-3 py-1 rounded-xl text-sm font-bold border-2 border-gray-200 bg-gray-100 text-gray-600">60초</button>
+                </div>
+                <!-- Countdown Display Badge -->
+                <div id="timer-display" class="hidden bg-rose-500 text-white font-bold text-xl px-3 py-1 rounded-2xl animate-pulse min-w-[65px] text-center shadow">
+                    60초
+                </div>
+            </div>
+        </div>
+
+        <!-- Word Card Container -->
+        <div id="card-container" class="w-full bg-white border-8 border-yellow-300 rounded-3xl p-6 sm:p-10 text-center flex flex-col items-center justify-center min-h-[340px] sm:min-h-[400px] relative transition-all card-shadow">
+            
+            <!-- Category Tag Badge -->
+            <span id="card-category-badge" class="absolute top-4 left-4 bg-sky-100 text-sky-700 text-sm font-bold px-3.5 py-1 rounded-full border border-sky-300">
+                알록달록 낱말카드
+            </span>
+
+            <!-- Read Aloud Speech Button (Top Right) -->
+            <button id="tts-btn" onclick="speakCurrentWord()" class="hidden absolute top-4 right-4 bg-amber-100 hover:bg-amber-200 text-amber-800 p-2.5 rounded-full border border-amber-300 shadow-sm transition-transform active:scale-95" title="음성으로 단어 듣기">
+                🔊 <span class="text-xs font-bold hidden sm:inline">단어 읽기</span>
+            </button>
+
+            <!-- Start State Message -->
+            <div id="start-message" class="flex flex-col items-center gap-3">
+                <span class="text-7xl sm:text-8xl animate-bounce">🎁</span>
+                <p class="text-2xl sm:text-4xl font-bold text-gray-700">아래 '🎲 다음 단어' 버튼을<br>눌러주세요!</p>
+                <p id="pool-info-text" class="text-sky-600 font-hand text-2xl font-bold mt-1">총 310개 이상의 재미있는 단어가 기다리고 있어요!</p>
+            </div>
+
+            <!-- Word Presentation (Hidden initially) -->
+            <div id="word-presentation" class="hidden flex flex-col items-center justify-center gap-3 w-full">
+                <!-- Emoji Illustration -->
+                <div id="word-emoji" class="text-7xl sm:text-8xl md:text-9xl filter drop-shadow-md transition-transform hover:scale-110">
+                    🐱
+                </div>
+                <!-- Main Word Text -->
+                <h2 id="word-text" class="text-5xl sm:text-7xl md:text-8xl font-black text-gray-800 tracking-wider my-1 sm:my-2">
+                    고양이
+                </h2>
+
+                <!-- Hint Container -->
+                <div id="hint-box" class="hidden w-full max-w-lg bg-amber-50 border-2 border-amber-300 rounded-2xl p-3 sm:p-4 mt-2 animate-pop">
+                    <p class="text-amber-800 text-lg sm:text-xl font-bold flex items-center justify-center gap-2">
+                        <span>💡 힌트:</span>
+                        <span id="hint-text" class="font-hand text-xl sm:text-2xl text-amber-900">야옹야옹 울고 쥐를 잡아요!</span>
+                    </p>
+                </div>
+
+                <!-- Show Hint Toggle Button -->
+                <button id="hint-btn" onclick="toggleHint()" class="mt-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-base sm:text-lg font-bold px-4 py-1.5 rounded-full border border-yellow-400 transition-colors">
+                    💡 힌트 보기
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Control Buttons -->
+        <div class="w-full flex flex-col sm:flex-row items-center justify-center gap-3 mt-2">
+            <!-- Pass Button -->
+            <button onclick="handlePass()" class="w-full sm:w-1/4 bg-rose-400 hover:bg-rose-500 text-white font-bold text-xl sm:text-2xl py-3.5 px-4 rounded-2xl btn-shadow transition-all flex items-center justify-center gap-2">
+                <span>⏭️</span> Pass (통과)
+            </button>
+
+            <!-- Next Random Word Button -->
+            <button onclick="nextWord()" class="w-full sm:w-2/4 bg-amber-400 hover:bg-amber-500 text-amber-950 font-extrabold text-2xl sm:text-3xl py-4 px-6 rounded-2xl btn-shadow transition-all flex items-center justify-center gap-2 border-2 border-amber-300">
+                <span>🎲</span> 다음 단어 뽑기!
+            </button>
+
+            <!-- Success / Correct Button -->
+            <button onclick="handleSuccess()" class="w-full sm:w-1/4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xl sm:text-2xl py-3.5 px-4 rounded-2xl btn-shadow transition-all flex items-center justify-center gap-2">
+                <span>✅</span> 맞췄어요!
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Footer Footer Information -->
+    <footer class="mt-6 text-center text-sky-600 font-hand text-lg">
+        🎈 선생님, 아이들과 즐겁고 행복한 낱말 맞추기 놀이 되세요!
+    </footer>
+
+    <!-- Audio & Logic Script -->
+    <script>
+        // ----------------------------------------------------
+        // 310+ Word Data Collection with Category & Hints
+        // ----------------------------------------------------
+        const wordDatabase = [
+            // ==================== 1. 동물 (65개) ====================
+            { word: "사자", emoji: "🦁", cat: "animal", catName: "동물", hint: "동물의 왕! 멋진 털과 '어흥' 소리를 내요." },
+            { word: "호랑이", emoji: "🐯", cat: "animal", catName: "동물", hint: "주황색 몸에 검은 줄무늬가 있는 무서운 동물이에요." },
+            { word: "강아지", emoji: "🐶", cat: "animal", catName: "동물", hint: "멍멍 짖고 꼬리를 흔들며 사람을 좋아해요." },
+            { word: "고양이", emoji: "🐱", cat: "animal", catName: "동물", hint: "야옹~ 울고 높은 곳을 잘 올라가요." },
+            { word: "토끼", emoji: "🐰", cat: "animal", catName: "동물", hint: "귀가 길고 깡충깡충 뛰며 당근을 좋아해요." },
+            { word: "곰", emoji: "🐻", cat: "animal", catName: "동물", hint: "커다란 몸에 꿀을 아주 좋아하는 동물이에요." },
+            { word: "판다", emoji: "🐼", cat: "animal", catName: "동물", hint: "눈 주변이 검고 대나무를 냠냠 먹어요." },
+            { word: "코끼리", emoji: "🐘", cat: "animal", catName: "동물", hint: "코가 아주 길고 귀가 부채처럼 커요." },
+            { word: "기린", emoji: "🦒", cat: "animal", catName: "동물", hint: "목이 아주 길어서 높은 나무의 잎을 먹어요." },
+            { word: "원숭이", emoji: "🐒", cat: "animal", catName: "동물", hint: "바나나를 좋아하고 나무를 훌쩍 잘 타요." },
+            { word: "펭귄", emoji: "🐧", cat: "animal", catName: "동물", hint: "추운 얼음나라에서 살고 뒤뚱뒤뚱 걸어요." },
+            { word: "돼지", emoji: "🐷", cat: "animal", catName: "동물", hint: "꿀꿀! 핑크색 몸에 코가 동그래요." },
+            { word: "소", emoji: "🐮", cat: "animal", catName: "동물", hint: "음매~ 하고 울고 우리에게 맛있는 우유를 줘요." },
+            { word: "말", emoji: "🐴", cat: "animal", catName: "동물", hint: "히잉~ 소리를 내며 쾌속으로 달릴 수 있어요." },
+            { word: "양", emoji: "🐑", cat: "animal", catName: "동물", hint: "하얗고 보송보송한 털을 가지고 있어요." },
+            { word: "병아리", emoji: "🐥", cat: "animal", catName: "동물", hint: "삐약삐약 울고 닭의 아기예요." },
+            { word: "닭", emoji: "🐓", cat: "animal", catName: "동물", hint: "아침이 되면 꼬꼬댁! 하고 울어요." },
+            { word: "오리", emoji: "🦆", cat: "animal", catName: "동물", hint: "꽥꽥! 물 위에서 둥둥 헤엄쳐요." },
+            { word: "개구리", emoji: "🐸", cat: "animal", catName: "동물", hint: "개굴개굴! 펄쩍 뛰고 연못에 살아요." },
+            { word: "거북이", emoji: "🐢", cat: "animal", catName: "동물", hint: "느릿느릿 걸어가고 등껍질이 딱딱해요." },
+            { word: "악어", emoji: "🐊", cat: "animal", catName: "동물", hint: "입이 뾰족하고 이빨이 날카로운 물속 동물이에요." },
+            { word: "공룡", emoji: "🦖", cat: "animal", catName: "동물", hint: "옛날 옛적에 살았던 엄청 커다란 동물이에요." },
+            { word: "고래", emoji: "🐳", cat: "animal", catName: "동물", hint: "바다에서 가장 크고 머리 위로 물을 뿜어요." },
+            { word: "상어", emoji: "🦈", cat: "animal", catName: "동물", hint: "바닷속 뾰족한 이빨을 가진 으스스한 물고기예요." },
+            { word: "돌고래", emoji: "🐬", cat: "animal", catName: "동물", hint: "바다에서 점프를 잘하고 사람과 친해요." },
+            { word: "문어", emoji: "🐙", cat: "animal", catName: "동물", hint: "다리가 8개 있고 뿜어내는 먹물이 있어요." },
+            { word: "오징어", emoji: "🦑", cat: "animal", catName: "동물", hint: "다리가 10개 있고 몸이 뾰족해요." },
+            { word: "꽃게", emoji: "🦀", cat: "animal", catName: "동물", hint: "집게발을 가지고 옆으로 걸어다녀요." },
+            { word: "나비", emoji: "🦋", cat: "animal", catName: "동물", hint: "알록달록 예쁜 날개로 나풀나풀 날아다녀요." },
+            { word: "꿀벌", emoji: "🐝", cat: "animal", catName: "동물", hint: "위잉위잉 날아다니며 꿀을 모아요." },
+            { word: "무당벌레", emoji: "🐞", cat: "animal", catName: "동물", hint: "빨간 껍질에 검은 쩜쩜이 들어있어요." },
+            { word: "달팽이", emoji: "🐌", cat: "animal", catName: "동물", hint: "등에 집을 지고 기어가며 더듬이가 있어요." },
+            { word: "다람쥐", emoji: "🐿️", cat: "animal", catName: "동물", hint: "볼에 도토리를 가득 넣고 다녀요." },
+            { word: "햄스터", emoji: "🐹", cat: "animal", catName: "동물", hint: "wheel 쳇바퀴를 씽씽 돌리는 작고 귀여운 친구예요." },
+            { word: "여우", emoji: "🦊", cat: "animal", catName: "동물", hint: "꼬리가 푹신하고 뾰족한 귀를 가진 동물이에요." },
+            { word: "늑대", emoji: "🐺", cat: "animal", catName: "동물", hint: "밤하늘 달을 보고 '아우~' 하고 울어요." },
+            { word: "사슴", emoji: "🦌", cat: "animal", catName: "동물", hint: "머리에 예쁜 나뭇가지 모양 뿔이 있어요." },
+            { word: "하마", emoji: "🦛", cat: "animal", catName: "동물", hint: "입을 큼직하게 짝 벌리고 물속에 잘 들어가요." },
+            { word: "낙타", emoji: "🐪", cat: "animal", catName: "동물", hint: "사막을 걸어다니고 등에 볼록한 혹이 있어요." },
+            { word: "캥거루", emoji: "🦘", cat: "animal", catName: "동물", hint: "배 주머니에 아기를 넣고 껑충 뛰어다녀요." },
+            { word: "코알라", emoji: "🐨", cat: "animal", catName: "동물", hint: "나무에 매달려 잠을 콜콜 자는 친구예요." },
+            { word: "올빼미", emoji: "🦉", cat: "animal", catName: "동물", hint: "밤에 눈을 크게 뜨고 부엉부엉 울어요." },
+            { word: "독수리", emoji: "🦅", cat: "animal", catName: "동물", hint: "하늘 커다란 날개로 씽씽 날아다니는 새예요." },
+            { word: "백조", emoji: "🦢", cat: "animal", catName: "동물", hint: "하얗고 목이 길어 물 위를 유유히 헤엄쳐요." },
+            { word: "플라밍고", emoji: "🦩", cat: "animal", catName: "동물", hint: "분홍색 깃털을 가지고 한 발로 서 있기도 해요." },
+            { word: "카멜레온", emoji: "🦎", cat: "animal", catName: "동물", hint: "몸 색깔을 알록달록 마음대로 바꾸어요." },
+            { word: "수달", emoji: "🦦", cat: "animal", catName: "동물", hint: "물속에서 누워서 조개를 톡톡 깨먹어요." },
+            { word: "바다표범", emoji: "🦭", cat: "animal", catName: "동물", hint: "얼음 위에서 손뼉을 짝짝 치는 바다 친구예요." },
+            { word: "고슴도치", emoji: "🦔", cat: "animal", catName: "동물", hint: "등에 뾰족뾰족 가시가 돋아 있어요." },
+            { word: "두더지", emoji: "🦦", cat: "animal", catName: "동물", hint: "땅속 굴을 파고 들어가는 동글동글 친구예요." },
+            { word: "쥐", emoji: "🐭", cat: "animal", catName: "동물", hint: "찍찍! 수염이 있고 치즈를 좋아해요." },
+            { word: "박쥐", emoji: "🦇", cat: "animal", catName: "동물", hint: "동굴에 거꾸로 매달려 밤에 날아다녀요." },
+            { word: "지렁이", emoji: "🪱", cat: "animal", catName: "동물", hint: "비가 오면 땅 위로 기어나오는 기다란 친구예요." },
+            { word: "물고기", emoji: "🐟", cat: "animal", catName: "동물", hint: "물속에서 지느러미를 흔들며 헤엄쳐요." },
+            { word: "해마", emoji: "🐴", cat: "animal", catName: "동물", hint: "말 모양을 닮은 신기한 바닷속 친구예요." },
+            { word: "해파리", emoji: "🪼", cat: "animal", catName: "동물", hint: "바닷속에서 투명하게 둥둥 떠다녀요." },
+            { word: "불가사리", emoji: "⭐", cat: "animal", catName: "동물", hint: "바다 밑에 사는 별 모양 친구예요." },
+            { word: "잠자리", emoji: "🦗", cat: "animal", catName: "동물", hint: "가을에 얇은 날개로 하늘을 씽씽 날아요." },
+            { word: "매미", emoji: "🦗", cat: "animal", catName: "동물", hint: "여름에 나무에서 맴맴! 크게 울어요." },
+            { word: "반딧불이", emoji: "✨", cat: "animal", catName: "동물", hint: "밤이 되면 엉덩이에서 반짝반짝 빛이 나요." },
+            { word: "사마귀", emoji: "🦗", cat: "animal", catName: "동물", hint: "앞다리가 낫처럼 생긴 초록색 곤충이에요." },
+            { word: "장수풍뎅이", emoji: "🪲", cat: "animal", catName: "동물", hint: "머리에 멋진 뿔이 달린 힘센 곤충이에요." },
+            { word: "사슴벌레", emoji: "🪲", cat: "animal", catName: "동물", hint: "집게 모양 턱을 가진 곤충 친구예요." },
+            { word: "타조", emoji: "🐦", cat: "animal", catName: "동물", hint: "키가 크고 다리가 길어 엄청 빠르게 달려요." },
+            { word: "공작새", emoji: "🦚", cat: "animal", catName: "동물", hint: "깃털을 활짝 펴면 알록달록 부채 같아요." },
+
+            // ==================== 2. 과일 & 음식 (65개) ====================
+            { word: "사과", emoji: "🍎", cat: "food", catName: "과일&음식", hint: "빨갛고 아삭아삭 맛있는 과일이에요." },
+            { word: "바나나", emoji: "🍌", cat: "food", catName: "과일&음식", hint: "노랗고 껍질을 까서 먹어요. 원숭이가 좋아해요." },
+            { word: "딸기", emoji: "🍓", cat: "food", catName: "과일&음식", hint: "빨간 몸에 깨가 콕콕 박혀 있는 새콤달콤 과일!" },
+            { word: "수박", emoji: "🍉", cat: "food", catName: "과일&음식", hint: "초록색 껍질에 검은 줄무늬가 있고 시원해요." },
+            { word: "포도", emoji: "🍇", cat: "food", catName: "과일&음식", hint: "보라색 동글동글 알맹이가 송이송이 뭉쳐있어요." },
+            { word: "오렌지", emoji: "🍊", cat: "food", catName: "과일&음식", hint: "주황색 껍질을 까면 새콤한 즙이 나와요." },
+            { word: "복숭아", emoji: "🍑", cat: "food", catName: "과일&음식", hint: "분홍색 털이 보송보송하고 달콤한 과일이에요." },
+            { word: "파인애플", emoji: "🍍", cat: "food", catName: "과일&음식", hint: "뾰족뾰족 껍질 속에 노란 달콤한 알맹이가 있어요." },
+            { word: "키위", emoji: "🥝", cat: "food", catName: "과일&음식", hint: "갈색 털 껍질 속에 초록색 잼 같은 알맹이가 들어있어요." },
+            { word: "메론", emoji: "🍈", cat: "food", catName: "과일&음식", hint: "그물 모양 껍질을 가진 달콤한 초록 과일!" },
+            { word: "감", emoji: "🟠", cat: "food", catName: "과일&음식", hint: "가을에 따먹는 주황색 단단하고 달콤한 과일!" },
+            { word: "귤", emoji: "🍊", cat: "food", catName: "과일&음식", hint: "겨울에 까먹는 새콤달콤 주황색 과일!" },
+            { word: "레몬", emoji: "🍋", cat: "food", catName: "과일&음식", hint: "노랗고 먹으면 아이아이! 너무 신 맛이 나요." },
+            { word: "체리", emoji: "🍒", cat: "food", catName: "과일&음식", hint: "빨갛고 작은 열매 두 개가 줄기에 묶여있어요." },
+            { word: "자두", emoji: "🍑", cat: "food", catName: "과일&음식", hint: "빨갛고 새콤달콤한 여름 과일이에요." },
+            { word: "옥수수", emoji: "🌽", cat: "food", catName: "과일&음식", hint: "노란 알갱이가 콕콕 씹히고 쪄서 먹어요." },
+            { word: "당근", emoji: "🥕", cat: "food", catName: "과일&음식", hint: "주황색 채소로 토끼가 냠냠 좋아해요." },
+            { word: "토마토", emoji: "🍅", cat: "food", catName: "과일&음식", hint: "동글동글 빨갛고 멋쟁이 채소 겸 과일!" },
+            { word: "오이", emoji: "🥒", cat: "food", catName: "과일&음식", hint: "길쭉하고 초록색이며 아삭아삭해요." },
+            { word: "호박", emoji: "🎃", cat: "food", catName: "과일&음식", hint: "할로윈에도 쓰이고 죽을 끓여 먹기도 해요." },
+            { word: "고구마", emoji: "🍠", cat: "food", catName: "과일&음식", hint: "보라색 껍질 속 노랗고 달콤한 구워먹는 먹거리!" },
+            { word: "감자", emoji: "🥔", cat: "food", catName: "과일&음식", hint: "땅속에서 나고 감자튀김을 만들어 먹어요." },
+            { word: "브로콜리", emoji: "🥦", cat: "food", catName: "과일&음식", hint: "초록색 작은 나무처럼 생긴 야채예요." },
+            { word: "버섯", emoji: "🍄", cat: "food", catName: "과일&음식", hint: "우산 모양처럼 생긴 숲속 친구 음식이에요." },
+            { word: "피자", emoji: "🍕", cat: "food", catName: "과일&음식", hint: "동그랗고 치즈가 쭉 늘어나는 맛있는 음식!" },
+            { word: "치킨", emoji: "🍗", cat: "food", catName: "과일&음식", hint: "바삭바삭 튀긴 닭고기 요리예요." },
+            { word: "햄버거", emoji: "🍔", cat: "food", catName: "과일&음식", hint: "빵 사이에 고기 패티와 야채가 들어있어요." },
+            { word: "핫도그", emoji: "🌭", cat: "food", catName: "과일&음식", hint: "소시지에 빵을 감싸고 케첩을 뿌려 먹어요." },
+            { word: "감자튀김", emoji: "🍟", cat: "food", catName: "과일&음식", hint: "노랗고 길쭉하며 짭짤한 바삭 간식!" },
+            { word: "아이스크림", emoji: "🍦", cat: "food", catName: "과일&음식", hint: "차가운 시원 달콤 핥아먹는 디저트!" },
+            { word: "케이크", emoji: "🎂", cat: "food", catName: "과일&음식", hint: "생일날 촛불을 켜고 후~ 부는 달콤 빵!" },
+            { word: "도넛", emoji: "🍩", cat: "food", catName: "과일&음식", hint: "가운데 구멍이 뚫린 알록달록 달콤 빵!" },
+            { word: "초콜릿", emoji: "🍫", cat: "food", catName: "과일&음식", hint: "갈색 달콤하고 살살 녹는 과자!" },
+            { word: "사탕", emoji: "🍬", cat: "food", catName: "과일&음식", hint: "알록달록 포장지에 싸인 달콤한 간식!" },
+            { word: "쿠키", emoji: "🍪", cat: "food", catName: "과일&음식", hint: "바삭바삭 씹히는 초코칩 과자예요." },
+            { word: "식빵", emoji: "🍞", cat: "food", catName: "과일&음식", hint: "네모나고 잼을 발라 먹으면 맛있어요." },
+            { word: "샌드위치", emoji: "🥪", cat: "food", catName: "과일&음식", hint: "식빵 사이에 햄과 치즈를 넣은 음식!" },
+            { word: "김밥", emoji: "🍙", cat: "food", catName: "과일&음식", hint: "검은 김에 밥과 단무지, 햄을 똘똘 말았어요." },
+            { word: "떡볶이", emoji: "🍢", cat: "food", catName: "과일&음식", hint: "매콤달콤 빨간 국물에 쫀득 떡이 퐁당!" },
+            { word: "라면", emoji: "🍜", cat: "food", catName: "과일&음식", hint: "꼬불꼬불 면발에 후루룩 먹는 요리!" },
+            { word: "자장면", emoji: "🍜", cat: "food", catName: "과일&음식", hint: "검은 소스를 쓱쓱 비벼 먹는 면 요리!" },
+            { word: "스파게티", emoji: "🍝", cat: "food", catName: "과일&음식", hint: "포크로 돌돌 말아 먹는 토마토 면 요리!" },
+            { word: "초밥", emoji: "🍣", cat: "food", catName: "과일&음식", hint: "밥 위에 맛있는 생선이 얹어져 있어요." },
+            { word: "만두", emoji: "🥟", cat: "food", catName: "과일&음식", hint: "피 속에 고기와 야채가 쏙 들어있어요." },
+            { word: "계란후라이", emoji: "🍳", cat: "food", catName: "과일&음식", hint: "노른자가 동그랗고 후라이팬에 익혀 먹어요." },
+            { word: "치즈", emoji: "🧀", cat: "food", catName: "과일&음식", hint: "노랗고 고소하며 피자 위에도 들어가요." },
+            { word: "우유", emoji: "🥛", cat: "food", catName: "과일&음식", hint: "하얗고 뼈를 튼튼하게 해주는 음료!" },
+            { word: "주스", emoji: "🧃", cat: "food", catName: "과일&음식", hint: "과일을 짠 달콤한 음료수예요." },
+            { word: "물", emoji: "💧", cat: "food", catName: "과일&음식", hint: "목이 마를 때 꿀꺽꿀꺽 마시는 투명한 것!" },
+            { word: "붕어빵", emoji: "🐟", cat: "food", catName: "과일&음식", hint: "겨울에 먹는 물고기 모양 달콤 팥빵!" },
+            { word: "호빵", emoji: "🧁", cat: "food", catName: "과일&음식", hint: "뜨끈뜨끈 김이 나고 호호 불어먹는 빵!" },
+            { word: "와플", emoji: "🧇", cat: "food", catName: "과일&음식", hint: "격자 모양 격눈에 꿀을 발라 먹어요." },
+            { word: "팬케이크", emoji: "🥞", cat: "food", catName: "과일&음식", hint: "동그랗고 시럽을 뿌려 푹신하게 먹어요." },
+            { word: "팝콘", emoji: "🍿", cat: "food", catName: "과일&음식", hint: "영화관에서 고소하게 먹는 옥수수 튀김!" },
+            { word: "시리얼", emoji: "🥣", cat: "food", catName: "과일&음식", hint: "우유에 타서 아침에 바삭 먹는 과자!" },
+            { word: "젤리", emoji: "🐻", cat: "food", catName: "과일&음식", hint: "말랑말랑 쫀득쫀득 곰돌이 모양 간식!" },
+            { word: "사탕발림(마카롱)", emoji: "🧁", cat: "food", catName: "과일&음식", hint: "알록달록 동그랗고 달콤한 크림 샌드!" },
+            { word: "삼각김밥", emoji: "🍙", cat: "food", catName: "과일&음식", hint: "세모 모양으로 편의점에서 파는 김밥!" },
+            { word: "돈가스", emoji: "🥩", cat: "food", catName: "과일&음식", hint: "바삭하게 튀긴 돼지고기에 소스를 콕!" },
+            { word: "카레", emoji: "🍛", cat: "food", catName: "과일&음식", hint: "노란 국물에 감자와 당근을 넣고 밥에 비벼요." },
+            { word: "미역국", emoji: "🍲", cat: "food", catName: "과일&음식", hint: "생일에 먹는 초록색 바다 풀 국!" },
+            { word: "계란말이", emoji: "🍳", cat: "food", catName: "과일&음식", hint: "노란 달걀을 돌돌 말아 만드는 반찬!" },
+            { word: "어묵", emoji: "🍢", cat: "food", catName: "과일&음식", hint: "꼬치에 꽂아 따뜻한 국물과 먹는 음식!" },
+            { word: "포도주스", emoji: "🍇", cat: "food", catName: "과일&음식", hint: "보라색 포도로 만든 새콤 음료수!" },
+            { word: "딸기우유", emoji: "🥛", cat: "food", catName: "과일&음식", hint: "분홍색이고 달콤한 과일 우유!" },
+
+            // ==================== 3. 탈것 & 교통 (55개) ====================
+            { word: "경찰차", emoji: "🚓", cat: "vehicle", catName: "탈것", hint: "삐뽀삐뽀! 도둑을 잡는 멋진 차!" },
+            { word: "소방차", emoji: "🚒", cat: "vehicle", catName: "탈것", hint: "삐에엥~ 불이 나면 물을 뿜으러 달려가요." },
+            { word: "구급차", emoji: "🚑", cat: "vehicle", catName: "탈것", hint: "삐뽀삐뽀! 아픈 사람을 병원으로 옮겨요." },
+            { word: "버스", emoji: "🚌", cat: "vehicle", catName: "탈것", hint: "많은 사람이 함께 타고 정류장에서 멈춰요." },
+            { word: "택시", emoji: "🚕", cat: "vehicle", catName: "탈것", hint: "손을 들면 타서 원하는 곳으로 가주는 차!" },
+            { word: "자전거", emoji: "🚲", cat: "vehicle", catName: "탈것", hint: "페달을 발로 굴리고 두 바퀴로 달려요." },
+            { word: "킥보드", emoji: "🛴", cat: "vehicle", catName: "탈것", hint: "한 발을 올리고 다른 발로 미는 쌩쌩 장난감!" },
+            { word: "오토바이", emoji: "🏍️", cat: "vehicle", catName: "탈것", hint: "부릉부릉! 두 바퀴로 씽씽 빠르게 달려요." },
+            { word: "비행기", emoji: "✈️", cat: "vehicle", catName: "탈것", hint: "하늘 높은 곳을 구름 넘어 날아가요." },
+            { word: "헬리콥터", emoji: "🚁", cat: "vehicle", catName: "탈것", hint: "머리 위에 프로펠러가 펄럭펄럭 돌아요." },
+            { word: "기차", emoji: "칙칙폭폭 🚂", cat: "vehicle", catName: "탈것", hint: "칙칙폭폭! 철길 위를 길게 이어 달려요." },
+            { word: "지하철", emoji: "🚇", cat: "vehicle", catName: "탈것", hint: "땅속 길을 빠르게 달리는 긴 기차!" },
+            { word: "배", emoji: "🚢", cat: "vehicle", catName: "탈것", hint: "바다 위를 둥둥 떠다니며 멀리 가요." },
+            { word: "잠수함", emoji: "🤿", cat: "vehicle", catName: "탈것", hint: "바닷속 깊은 곳으로 퐁당 들어가요." },
+            { word: "우주선", emoji: "🚀", cat: "vehicle", catName: "탈것", hint: "슈웅~! 불꽃을 뿜으며 달나라로 가요." },
+            { word: "굴착기(포크레인)", emoji: "🚜", cat: "vehicle", catName: "탈것", hint: "커다란 집게 퍼올리기로 흙을 파내요." },
+            { word: "트랙터", emoji: "🚜", cat: "vehicle", catName: "탈것", hint: "시골 밭에서 흙을 일구는 힘센 차!" },
+            { word: "덤프트럭", emoji: "🚛", cat: "vehicle", catName: "탈것", hint: "뒷부분을 들어 올려 모래나 흙을 쏟아내요." },
+            { word: "레미콘", emoji: "🚛", cat: "vehicle", catName: "탈것", hint: "커다란 통이 데굴데굴 돌면서 시멘트를 섞어요." },
+            { word: "청소차", emoji: "🧹", cat: "vehicle", catName: "탈것", hint: "길거리를 깨끗하게 쓰레기를 치워주는 차!" },
+            { word: "견인차(렉카)", emoji: "🛻", cat: "vehicle", catName: "탈것", hint: "고장 난 차를 뒤에 매달고 이끌어줘요." },
+            { word: "캠핑카", emoji: "🚐", cat: "vehicle", catName: "탈것", hint: "차 안에 침대와 요리 공간이 있는 집 같은 차!" },
+            { word: "열기구", emoji: "🎈", cat: "vehicle", catName: "탈것", hint: "커다란 풍선 아래 바구니를 타고 하늘을 둥둥!" },
+            { word: "케이블카", emoji: "🚡", cat: "vehicle", catName: "탈것", hint: "줄을 타고 산 위로 매달려 올라가는 집!" },
+            { word: "모노레일", emoji: "🚝", cat: "vehicle", catName: "탈것", hint: "놀이공원에서 한 줄 레일 위를 달리는 열차!" },
+            { word: "인라인스케이트", emoji: "🛼", cat: "vehicle", catName: "탈것", hint: "신발 밑에 바퀴가 달려 씽씽 굴러가요." },
+            { word: "스케이트보드", emoji: "🛹", cat: "vehicle", catName: "탈것", hint: "네모난 판에 바퀴 4개가 있어 발로 차서 타요." },
+            { word: "썰매", emoji: "🛷", cat: "vehicle", catName: "탈것", hint: "겨울 하얀 눈 위를 씽씽 타고 내려와요." },
+            { word: "마차", emoji: "🐎", cat: "vehicle", catName: "탈것", hint: "말이 뒤에 수레를 끌고 가는 옛날 탈것!" },
+            { word: "인력거", emoji: "🛺", cat: "vehicle", catName: "탈것", hint: "사람이나 자전거가 뒤에 의자를 끌어줘요." },
+            { word: "우주탐사선", emoji: "🛰️", cat: "vehicle", catName: "탈것", hint: "우주 멀리 별과 행성을 조사하러 가요." },
+            { word: "스포츠카", emoji: "🏎️", cat: "vehicle", catName: "탈것", hint: "부릉! 소리가 엄청 크고 아주 빠른 멋진 차!" },
+            { word: "이륜차(세그웨이)", emoji: "🛴", cat: "vehicle", catName: "탈것", hint: "서서 손잡이를 잡고 균형을 잡으며 타요." },
+            { word: "수상오토바이", emoji: "🚤", cat: "vehicle", catName: "탈것", hint: "물 위에서 시원하게 물보라를 일으키며 달려요." },
+            { word: "요트", emoji: "⛵", cat: "vehicle", catName: "탈것", hint: "바람을 받는 하얀 돛을 달고 유유히 가요." },
+            { word: "경비정", emoji: "🛥️", cat: "vehicle", catName: "탈것", hint: "바다를 지키는 경찰 아저씨들의 배!" },
+            { word: "우편배달차", emoji: "📦", cat: "vehicle", catName: "탈것", hint: "편지와 택배를 집으로 가져다주는 빨간 차!" },
+            { word: "스쿨버스", emoji: "🚌", cat: "vehicle", catName: "탈것", hint: "노란색이고 유치원과 학교를 데려다줘요." },
+            { word: "지게차", emoji: "🚜", cat: "vehicle", catName: "탈것", hint: "앞에 뾰족한 꼬챙이로 무거운 상자를 들어요." },
+            { word: "불도저", emoji: "🚜", cat: "vehicle", catName: "탈것", hint: "앞에 밀판으로 흙과 돌을 쓱쓱 밀어버려요." },
+            { word: "우주복", emoji: "👨‍🚀", cat: "vehicle", catName: "탈것", hint: "우주선 탈 때 꼭 입는 동그란 투구 입은 옷!" },
+            { word: "행글라이더", emoji: "🪂", cat: "vehicle", catName: "탈것", hint: "삼각형 날개를 잡고 높은 산에서 슝 뛰어내려요." },
+            { word: "낙하산", emoji: "🪂", cat: "vehicle", catName: "탈것", hint: "하늘 높은 곳에서 펼치면 천천히 내려와요." },
+            { word: "드론", emoji: "🚁", cat: "vehicle", catName: "탈것", hint: "날개가 4개 있고 조종기로 하늘을 날려요." },
+            { word: "전기자전거", emoji: "🚲", cat: "vehicle", catName: "탈것", hint: "배터리 힘으로 힘들지 않게 달리는 자전거!" },
+            { word: "삼륜차", emoji: "🛺", cat: "vehicle", catName: "탈것", hint: "바퀴가 3개 달린 아기자기한 차!" },
+            { word: "수륙양용차", emoji: "🚙", cat: "vehicle", catName: "탈것", hint: "땅에서도 달리고 물 위에서도 떠서 가요." },
+            { word: "증기기관차", emoji: "🚂", cat: "vehicle", catName: "탈것", hint: "검은 연기를 뿜으며 칙칙폭폭 가던 옛날 기차!" },
+            { word: "고속열차(KTX)", emoji: "🚅", cat: "vehicle", catName: "탈것", hint: "바람처럼 엄청나게 쌩쌩 빠른 기차!" },
+            { word: "화물선", emoji: "🚢", cat: "vehicle", catName: "탈것", hint: "알록달록 큰 상자를 가득 싣고 다니는 배!" },
+            { word: "어선", emoji: "🎣", cat: "vehicle", catName: "탈것", hint: "바다에 나가 그물로 물고기를 잡는 배!" },
+            { word: "구명정", emoji: "🚣", cat: "vehicle", catName: "탈것", hint: "위급할 때 타는 작은 조그만 구조용 배!" },
+            { word: "나룻배", emoji: "🚣", cat: "vehicle", catName: "탈것", hint: "노를 젓어서 강을 건너가는 작은 나무 배!" },
+            { word: "잠수정", emoji: "🤿", cat: "vehicle", catName: "탈것", hint: "바다 아주 아주 깊은 탐사를 하러 가는 작은 배!" },
+            { word: "우주탐사로봇", emoji: "🤖", cat: "vehicle", catName: "탈것", hint: "화성이나 달을 굴러다니며 조사하는 차!" },
+
+            // ==================== 4. 사물 & 자연 (75개) ====================
+            { word: "연필", emoji: "✏️", cat: "object", catName: "사물&자연", hint: "글씨나 그림을 그릴 때 손에 쥐는 도구!" },
+            { word: "지우개", emoji: "🛞", cat: "object", catName: "사물&자연", hint: "연필로 쓴 글씨를 쓱싹쓱싹 지워줘요." },
+            { word: "크레파스", emoji: "🖍️", cat: "object", catName: "사물&자연", hint: "알록달록 색칠할 때 쓰는 색연필 친구!" },
+            { word: "가위", emoji: "✂️", cat: "object", catName: "사물&자연", hint: "종이를 오릴 때 싹둑싹둑 써요." },
+            { word: "풀", emoji: "🧴", cat: "object", catName: "사물&자연", hint: "종이와 종이를 딱 붙일 때 발라요." },
+            { word: "가방", emoji: "🎒", cat: "object", catName: "사물&자연", hint: "등에 메고 책과 장난감을 넣어 다녀요." },
+            { word: "우산", emoji: "☂️", cat: "object", catName: "사물&자연", hint: "비가 오는 날 머리 위에 쫙 펴서 써요." },
+            { word: "모자", emoji: "🧢", cat: "object", catName: "사물&자연", hint: "햇빛을 가리려고 머리에 써요." },
+            { word: "신발", emoji: "👟", cat: "object", catName: "사물&자연", hint: "밖으로 나갈 때 발에 신어요." },
+            { word: "양말", emoji: "🧦", cat: "object", catName: "사물&자연", hint: "신발을 신기 전에 발에 먼저 신어요." },
+            { word: "안경", emoji: "👓", cat: "object", catName: "사물&자연", hint: "눈이 잘 안 보일 때 얼굴에 써요." },
+            { word: "시계", emoji: "⏰", cat: "object", catName: "사물&자연", hint: "째깍째깍 소리를 내며 지금 몇 시인지 알려줘요." },
+            { word: "거울", emoji: "🪞", cat: "object", catName: "사물&자연", hint: "내 얼굴이 똑같이 들여다보이는 유리판!" },
+            { word: "칫솔", emoji: "🪥", cat: "object", catName: "사물&자연", hint: "치약을 묻혀 치아를 치카치카 닦아요." },
+            { word: "비누", emoji: "🧼", cat: "object", catName: "사물&자연", hint: "손을 씻을 때 보글보글 거품이 나요." },
+            { word: "수건", emoji: "🧺", cat: "object", catName: "사물&자연", hint: "손이나 얼굴을 씻고 물기를 닦아요." },
+            { word: "빗", emoji: "🪮", cat: "object", catName: "사물&자연", hint: "엉킨 머리카락을 쓱쓱 단정하게 정돈해요." },
+            { word: "휴지", emoji: "🧻", cat: "object", catName: "사물&자연", hint: "코를 찌~ 뚫거나 쓱 지울 때 쓰는 화장지!" },
+            { word: "컵", emoji: "🥛", cat: "object", catName: "사물&자연", hint: "물이나 주스를 담아서 마시는 그릇!" },
+            { word: "숟가락", emoji: "🥄", cat: "object", catName: "사물&자연", hint: "밥이나 따뜻한 국을 떠먹는 도구!" },
+            { word: "젓가락", emoji: "🥢", cat: "object", catName: "사물&자연", hint: "두 개로 반찬을 콕 집어먹는 도구!" },
+            { word: "포크", emoji: "🍴", cat: "object", catName: "사물&자연", hint: "뾰족한 날로 음식을 콕 찍어 먹어요." },
+            { word: "냉장고", emoji: "🧊", cat: "object", catName: "사물&자연", hint: "음식이 시원하고 싱싱하게 보관되는 네모 상자!" },
+            { word: "텔레비전(TV)", emoji: "📺", cat: "object", catName: "사물&자연", hint: "만화 영화나 재밌는 영상이 나오는 큰 화면!" },
+            { word: "스마트폰", emoji: "📱", cat: "object", catName: "사물&자연", hint: "손에 쥐고 전화도 하고 게임도 하는 전화기!" },
+            { word: "컴퓨터", emoji: "💻", cat: "object", catName: "사물&자연", hint: "키보드를 치고 화면을 보며 공부하는 기계!" },
+            { word: "선풍기", emoji: "🌬️", cat: "object", catName: "사물&자연", hint: "날개가 회전하며 시원한 바람을 쌩쌩 보내요." },
+            { word: "에어컨", emoji: "❄️", cat: "object", catName: "사물&자연", hint: "여름에 방안 전체를 찬 바람으로 시원하게 해줘요." },
+            { word: "청소기", emoji: "🧹", cat: "object", catName: "사물&자연", hint: "위잉~ 소리를 내며 바닥 먼지를 쏙 흡수해요." },
+            { word: "세탁기", emoji: "🧺", cat: "object", catName: "사물&자연", hint: "더러워진 옷을 빙글빙글 돌려 깨끗하게 빨아줘요." },
+            { word: "침대", emoji: "🛏️", cat: "object", catName: "사물&자연", hint: "푹신한 이불을 덮고 밤에 쿨쿨 자는 곳!" },
+            { word: "의자", emoji: "🪑", cat: "object", catName: "사물&자연", hint: "엉덩이를 대고 편안하게 앉는 가구!" },
+            { word: "책상", emoji: "🛋️", cat: "object", catName: "사물&자연", hint: "의자에 앉아 공책을 펼치고 공부하는 대!" },
+            { word: "풍선", emoji: "🎈", cat: "object", catName: "사물&자연", hint: "후~ 바람을 넣으면 동그랗게 부풀어 올라요." },
+            { word: "공", emoji: "⚽", cat: "object", catName: "사물&자연", hint: "통통 튀기고 발로 차며 노는 동그란 장난감!" },
+            { word: "인형", emoji: "🧸", cat: "object", catName: "사물&자연", hint: "푹신푹신 안고 자는 곰돌이 친구 장난감!" },
+            { word: "블록", emoji: "🧩", cat: "object", catName: "사물&자연", hint: "착착 쌓아서 성이나 집을 만드는 장난감!" },
+            { word: "미끄럼틀", emoji: "🛝", cat: "object", catName: "사물&자연", hint: "계단을 올라가 슝~ 내려오는 놀이터 놀이기구!" },
+            { word: "시소", emoji: "⚖️", cat: "object", catName: "사물&자연", hint: "양쪽에 친구와 앉아 위아래로 올라갔다 내려오는 기구!" },
+            { word: "그네", emoji: "🎠", cat: "object", catName: "사물&자연", hint: "줄을 잡고 앞뒤로 구르며 하늘 높이 슝 타요." },
+            { word: "돋보기", emoji: "🔍", cat: "object", catName: "사물&자연", hint: "작은 개미나 글씨를 크~게 볼 수 있는 유리!" },
+            { word: "손전등", emoji: "🔦", cat: "object", catName: "사물&자연", hint: "어두운 곳에서 스위치를 누르면 불이 짠 켜져요." },
+            { word: "태양(해)", emoji: "☀️", cat: "object", catName: "사물&자연", hint: "낮 하늘에 뜨겁고 환하게 빛나는 친구!" },
+            { word: "달", emoji: "🌙", cat: "object", catName: "사물&자연", hint: "밤하늘에 노랗게 떠서 모양이 바뀌는 친구!" },
+            { word: "별", emoji: "⭐", cat: "object", catName: "사물&자연", hint: "밤하늘에 반짝반짝 작은 빛으로 빛나요." },
+            { word: "구름", emoji: "☁️", cat: "object", catName: "사물&자연", hint: "하늘에 하얗고 몽실몽실 떠 있는 솜사탕 모양!" },
+            { word: "무지개", emoji: "🌈", cat: "object", catName: "사물&자연", hint: "비가 그친 후 하늘에 빨주노초파남보 다리가 생겨요." },
+            { word: "비", emoji: "🌧️", cat: "object", catName: "사물&자연", hint: "구름에서 땅으로 떨어지는 주룩주룩 물방울!" },
+            { word: "눈(Snow)", emoji: "❄️", cat: "object", catName: "사물&자연", hint: "겨울 하늘에서 하얗고 차갑게 내려와요." },
+            { word: "눈사람", emoji: "☃️", cat: "object", catName: "사물&자연", hint: "하얀 눈을 굴려 동그랗게 두 덩이 쌓아 만들어요." },
+            { word: "바람", emoji: "🌬️", cat: "object", catName: "사물&자연", hint: "눈에 보이지 않지만 머리카락을 흩날리게 해요." },
+            { word: "번개", emoji: "⚡", cat: "object", catName: "사물&자연", hint: "비 오는 날 하늘에서 우르르 쾅! 빛나요." },
+            { word: "산", emoji: "⛰️", cat: "object", catName: "사물&자연", hint: "나무가 많고 높이 올라가야 하는 자연!" },
+            { word: "바다", emoji: "🌊", cat: "object", catName: "사물&자연", hint: "파도가 치고 짠물이 있는 파란 넓은 곳!" },
+            { word: "강", emoji: "🏞️", cat: "object", catName: "사물&자연", hint: "물고기들이 헤엄치고 바다로 흘러가는 물길!" },
+            { word: "꽃", emoji: "🌸", cat: "object", catName: "사물&자연", hint: "봄이 되면 알록달록 예쁘게 피어나고 향기가 나요." },
+            { word: "나무", emoji: "🌳", cat: "object", catName: "사물&자연", hint: "초록 잎과 갈색 줄기가 있고 쉼터를 줘요." },
+            { word: "단풍잎", emoji: "🍁", cat: "object", catName: "사물&자연", hint: "가을이 되면 빨갛고 노랗게 물드는 잎!" },
+            { word: "자갈", emoji: "🪨", cat: "object", catName: "사물&자연", hint: "땅에 굴러다니는 작고 동글동글 단단한 돌!" },
+            { word: "모래", emoji: "🏖️", cat: "object", catName: "사물&자연", hint: "놀이터나 바닷가에서 성을 쌓는 고운 흙!" },
+            { word: "화분", emoji: "🪴", cat: "object", catName: "사물&자연", hint: "흙을 담고 예쁜 식물을 심어 키우는 통!" },
+            { word: "실로폰", emoji: "🎼", cat: "object", catName: "사물&자연", hint: "채로 톡톡 치면 실로폰 소리가 딩동댕 나요." },
+            { word: "피아노", emoji: "🎹", cat: "object", catName: "사물&자연", hint: "건반을 누르면 도레미파솔라시도 소리가 나요." },
+            { word: "북", emoji: "🥁", cat: "object", catName: "사물&자연", hint: "채로 둥둥둥 때려서 소리를 내는 악기!" },
+            { word: "트라이앵글", emoji: "📐", cat: "object", catName: "사물&자연", hint: "세모 모양 쇠를 채로 치면 챙챙 소리가 나요." },
+            { word: "스케치북", emoji: "🎨", cat: "object", catName: "사물&자연", hint: "하얀 종이가 여러 장 묶여 그림을 그리는 공책!" },
+            { word: "돋보기안경", emoji: "🔍", cat: "object", catName: "사물&자연", hint: "할아버지 할머니가 글씨 크게 보실 때 써요." },
+            { word: "머리띠", emoji: "🎀", cat: "object", catName: "사물&자연", hint: "머리가 흘러내리지 않게 쏙 꽂는 예쁜 띠!" },
+            { word: "반지", emoji: "💍", cat: "object", catName: "사물&자연", hint: "손가락에 쏙 끼우는 반짝반짝 액세서리!" },
+            { word: "시계탑", emoji: "🏰", cat: "object", catName: "사물&자연", hint: "높은 성 위에서 큰 시계 바늘이 돌아가요." },
+            { word: "분수대", emoji: "⛲", cat: "object", catName: "사물&자연", hint: "공원에서 물이 위로 솟구쳐 오르는 기구!" },
+            { word: "가로등", emoji: "💡", cat: "object", catName: "사물&자연", hint: "밤길을 환하게 비춰주는 길거리 기다란 불빛!" },
+            { word: "신호등", emoji: "🚦", cat: "object", catName: "사물&자연", hint: "빨간불은 멈추고 초록불은 건너요." },
+            { word: "횡단보도", emoji: "🦓", cat: "object", catName: "사물&자연", hint: "길을 건널 때 건너는 하얀 얼룩말 줄무늬 길!" },
+            { word: "우체통", emoji: "📮", cat: "object", catName: "사물&자연", hint: "편지를 넣으면 우체부 아저씨가 가져가요." },
+
+            // ==================== 5. 직업 & 행동 (50개) ====================
+            { word: "의사", emoji: "🧑‍⚕️", cat: "job_action", catName: "직업&행동", hint: "아플 때 청진기로 진찰해 주고 치료해 줘요." },
+            { word: "경찰관", emoji: "👮", cat: "job_action", catName: "직업&행동", hint: "멋진 제복을 입고 우리 동네 안전을 지켜줘요." },
+            { word: "소방관", emoji: "👨‍🚒", cat: "job_action", catName: "직업&행동", hint: "불이 났을 때 생명을 구하고 불을 끌어 달려와요." },
+            { word: "요리사", emoji: "🧑‍🍳", cat: "job_action", catName: "직업&행동", hint: "하얀 모자를 쓰고 맛있는 음식을 요리해요." },
+            { word: "선생님", emoji: "🧑‍🏫", cat: "job_action", catName: "직업&행동", hint: "유치원에서 우리에게 재미난 낱말과 노래를 가르쳐줘요." },
+            { word: "우주비행사", emoji: "👨‍🚀", cat: "job_action", catName: "직업&행동", hint: "우주복을 입고 달나라로 탐사를 떠나요." },
+            { word: "마술사", emoji: "🪄", cat: "job_action", catName: "직업&행동", hint: "모자에서 비둘기나 꽃을 짠! 나타나게 해요." },
+            { word: "가수", emoji: "🎤", cat: "job_action", catName: "직업&행동", hint: "마이크를 잡고 신나고 예쁜 노래를 불러요." },
+            { word: "화가", emoji: "🎨", cat: "job_action", catName: "직업&행동", hint: "붓과 물감으로 멋진 그림판에 그림을 그려요." },
+            { word: "미용사", emoji: "✂️", cat: "job_action", catName: "직업&행동", hint: "가위로 머리카락을 예쁘게 잘라줘요." },
+            { word: "농부", emoji: "👨‍🌾", cat: "job_action", catName: "직업&행동", hint: "밭에서 쌀과 야채, 과일을 정성껏 키워요." },
+            { word: "어부", emoji: "🎣", cat: "job_action", catName: "직업&행동", hint: "배를 타고 바다로 나가 물고기를 잡아요." },
+            { word: "비행기 조종사", emoji: "🧑‍✈️", cat: "job_action", catName: "직업&행동", hint: "멋진 모자를 쓰고 커다란 비행기를 운전해요." },
+            { word: "운동선수", emoji: "🏃", cat: "job_action", catName: "직업&행동", hint: "축구나 풋살, 수영을 아주 멋지게 하는 사람!" },
+            { word: "치과의사", emoji: "🦷", cat: "job_action", catName: "직업&행동", hint: "아픈 이빨을 치료해 주는 선생님!" },
+            { word: "수의사", emoji: "🐶", cat: "job_action", catName: "직업&행동", hint: "아픈 강아지나 고양이를 치료해 줘요." },
+            { word: "우체부", emoji: "📦", cat: "job_action", catName: "직업&행동", hint: "우리 집 문 앞까지 편지와 선물을 가져다줘요." },
+            { word: "건축가", emoji: "🏗️", cat: "job_action", catName: "직업&행동", hint: "멋진 집과 높은 빌딩을 설계하는 사람!" },
+            { word: "사진작가", emoji: "📸", cat: "job_action", catName: "직업&행동", hint: "찰칵! 찰칵! 카메라로 예쁜 순간을 담아요." },
+            { word: "탐정", emoji: "🕵️", cat: "job_action", catName: "직업&행동", hint: "돋보기를 들고 단서를 찾아 사건을 해결해요." },
+            { word: "박수치기", emoji: "👏", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 손을 짝짝짝 맞대며 소리를 내요!" },
+            { word: "점프하기", emoji: "🤸", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 발로 땅을 차고 높이 껑충 튀어올라요!" },
+            { word: "춤추기", emoji: "💃", cat: "job_action", catName: "직업&행동", hint: "(동작) 음악에 맞춰 몸을 신나게 룰루랄라 흔들어요!" },
+            { word: "윙크하기", emoji: "😉", cat: "job_action", catName: "직업&행동", hint: "(동작) 한쪽 눈만 살짝 감았다가 떠요!" },
+            { word: "인사하기", emoji: "🙇", cat: "job_action", catName: "직업&행동", hint: "(동작) 허리를 숙이고 '안녕하세요!' 하고 말을 해요." },
+            { word: "수영하기", emoji: "🏊", cat: "job_action", catName: "직업&행동", hint: "(동작) 물속에서 팔다리를 저으며 헤엄쳐요." },
+            { word: "노래하기", emoji: "🎤", cat: "job_action", catName: "직업&행동", hint: "(동작) 목소리로 랄랄라 예쁜 소리를 내요." },
+            { word: "달리기", emoji: "🏃", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 다리를 쌩쌩 빠르게 움직여 앞으로 가요." },
+            { word: "잠자기", emoji: "😴", cat: "job_action", catName: "직업&행동", hint: "(동작) 눈을 감고 베개를 베며 쿨쿨 숨을 쉬어요." },
+            { word: "웃기", emoji: "😄", cat: "job_action", catName: "직업&행동", hint: "(동작) 기분이 좋아서 입을 크게 벌리고 하하하!" },
+            { word: "울기", emoji: "😭", cat: "job_action", catName: "직업&행동", hint: "(동작) 슬퍼서 눈물이 뚝뚝 떨어지며 엉엉!" },
+            { word: "밥 먹기", emoji: "🍚", cat: "job_action", catName: "직업&행동", hint: "(동작) 숟가락으로 음식을 입에 넣고 냠냠 씹어요." },
+            { word: "양치하기", emoji: "🪥", cat: "job_action", catName: "직업&행동", hint: "(동작) 칫솔에 치약을 묻히고 윗니 아랫니 닦아요." },
+            { word: "세수하기", emoji: "🧼", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 손에 물을 담아 얼굴을 깨끗이 어푸어푸!" },
+            { word: "손 씻기", emoji: "🧼", cat: "job_action", catName: "직업&행동", hint: "(동작) 비누 거품으로 손가락 사이사이 싹싹!" },
+            { word: "책 읽기", emoji: "📖", cat: "job_action", catName: "직업&행동", hint: "(동작) 책장을 한 장씩 넘기며 글을 봐요." },
+            { word: "그림 그리기", emoji: "🎨", cat: "job_action", catName: "직업&행동", hint: "(동작) 크레파스를 잡고 종이에 쓱싹 모양을 만들어요." },
+            { word: "줄넘기하기", emoji: "🤸", cat: "job_action", catName: "직업&행동", hint: "(동작) 긴 줄을 돌리며 껑충껑충 발을 넘어요." },
+            { word: "공 던지기", emoji: "⚾", cat: "job_action", catName: "직업&행동", hint: "(동작) 손에 공을 쥐고 멀리 슝 날려요." },
+            { word: "발차기", emoji: "🦶", cat: "job_action", catName: "직업&행동", hint: "(동작) 다리를 얍! 하고 공중으로 들어 올려요." },
+            { word: "손뼉 치기", emoji: "👏", cat: "job_action", catName: "직업&행동", hint: "(동작) 잘했을 때 짝짝짝 소리를 내어 축하해 줘요." },
+            { word: "청소하기", emoji: "🧹", cat: "job_action", catName: "직업&행동", hint: "(동작) 빗자루나 걸레로 바닥을 깨끗이 닦아요." },
+            { word: "요리하기", emoji: "🍳", cat: "job_action", catName: "직업&행동", hint: "(동작) 후라이팬에 재료를 넣고 볶고 끓여요." },
+            { word: "전화하기", emoji: "📞", cat: "job_action", catName: "직업&행동", hint: "(동작) 귀에 전화기를 대고 '여보세요?' 말을 해요." },
+            { word: "하품하기", emoji: "🥱", cat: "job_action", catName: "직업&행동", hint: "(동작) 졸릴 때 입을 큼직하게 짝 벌리며 숨을 쉬어요." },
+            { word: "재채기하기", emoji: "🤧", cat: "job_action", catName: "직업&행동", hint: "(동작) 코가 엣취! 하고 소리가 나는 행동!" },
+            { word: "기지개 켜기", emoji: "🙆", cat: "job_action", catName: "직업&행동", hint: "(동작) 잠에서 깨어 손을 하늘 위로 쫙 뻗어요!" },
+            { word: "악수하기", emoji: "🤝", cat: "job_action", catName: "직업&행동", hint: "(동작) 처음 만난 친구와 손을 잡고 흔들어요." },
+            { word: "안아주기", emoji: "🫂", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 팔을 벌려 친구나 엄마를 꼭 감싸줘요." },
+            { word: "사랑해 하기", emoji: "🫶", cat: "job_action", catName: "직업&행동", hint: "(동작) 두 손으로 머리 위나 가슴에 하트를 만들어요." }
+        ];
+
+        // Global State Variables
+        let filteredWords = [...wordDatabase];
+        let currentWordObj = null;
+        let scoreSuccess = 0;
+        let scorePass = 0;
+        let timerMode = 'none'; // 'none', 30, 60
+        let timerSeconds = 0;
+        let timerInterval = null;
+
+        // Web Audio API Context setup for simple UI Sound FX
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+        }
+
+        // Play procedural Sound Effect (No external files needed)
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'pop') { // Next / Draw sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'correct') { // Success sound
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                } else if (type === 'pass') { // Pass sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(200, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'hint') { // Hint sound
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.setValueAtTime(900, now + 0.08);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.log("Audio play error:", e);
+            }
+        }
+
+        // Web Speech API for TTS Word Reading
+        function speakCurrentWord() {
+            if (!currentWordObj) return;
+            playSound('pop');
+
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any ongoing speech
+                const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
+                utterance.lang = 'ko-KR';
+                utterance.rate = 0.85; // Slightly slower speed for kids
+                utterance.pitch = 1.1;  // Slightly friendly higher pitch
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("이 브라우저는 음성 읽기 기능을 지원하지 않아요.");
+            }
+        }
+
+        // Category Filter Change Event Handler
+        function changeCategory() {
+            const cat = document.getElementById('category-select').value;
+            if (cat === 'all') {
+                filteredWords = [...wordDatabase];
+            } else {
+                filteredWords = wordDatabase.filter(item => item.cat === cat);
+            }
+
+            // Reset current word view
+            document.getElementById('start-message').classList.remove('hidden');
+            document.getElementById('word-presentation').classList.add('hidden');
+            document.getElementById('tts-btn').classList.add('hidden');
+            
+            // Update Text Badge & Info
+            document.getElementById('pool-info-text').innerText = `선택한 주제에 ${filteredWords.length}개의 단어가 있어요!`;
+            playSound('pop');
+        }
+
+        // Timer Setup Mode Handler
+        function setTimerMode(mode) {
+            timerMode = mode;
+            playSound('pop');
+
+            // Reset UI Buttons
+            ['none', 30, 60].forEach(m => {
+                const btn = document.getElementById(`timer-btn-${m}`);
+                if (m === mode) {
+                    btn.className = "px-3 py-1 rounded-xl text-sm font-bold border-2 border-amber-500 bg-amber-400 text-amber-950 shadow";
+                } else {
+                    btn.className = "px-3 py-1 rounded-xl text-sm font-bold border-2 border-gray-200 bg-gray-100 text-gray-600";
+                }
+            });
+
+            const display = document.getElementById('timer-display');
+            if (mode === 'none') {
+                display.classList.add('hidden');
+                stopTimer();
+            } else {
+                display.classList.remove('hidden');
+                display.innerText = `${mode}초`;
+                if (currentWordObj) {
+                    startTimer(mode);
+                }
+            }
+        }
+
+        // Timer Start Logic
+        function startTimer(seconds) {
+            stopTimer();
+            timerSeconds = seconds;
+            const display = document.getElementById('timer-display');
+            display.innerText = `${timerSeconds}초`;
+            display.classList.remove('bg-gray-500', 'animate-ping');
+            display.classList.add('bg-rose-500');
+
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                if (timerSeconds <= 0) {
+                    stopTimer();
+                    display.innerText = "시간 끝!";
+                    playSound('pass');
+                } else {
+                    display.innerText = `${timerSeconds}초`;
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        // Next Word Draw Action
+        function nextWord() {
+            if (filteredWords.length === 0) return;
+
+            playSound('pop');
+
+            // Pick a random word from filtered pool
+            const randomIndex = Math.floor(Math.random() * filteredWords.length);
+            currentWordObj = filteredWords[randomIndex];
+
+            // Hide Start view, Show presentation view
+            document.getElementById('start-message').classList.add('hidden');
+            const presentation = document.getElementById('word-presentation');
+            presentation.classList.remove('hidden');
+            document.getElementById('tts-btn').classList.remove('hidden');
+
+            // Animation re-trigger
+            presentation.classList.remove('animate-pop');
+            void presentation.offsetWidth; // Trigger reflow
+            presentation.classList.add('animate-pop');
+
+            // Update Word UI Elements
+            document.getElementById('word-emoji').innerText = currentWordObj.emoji;
+            document.getElementById('word-text').innerText = currentWordObj.word;
+            document.getElementById('card-category-badge').innerText = `🏷️ ${currentWordObj.catName}`;
+            
+            // Reset Hint UI
+            const hintBox = document.getElementById('hint-box');
+            const hintBtn = document.getElementById('hint-btn');
+            hintBox.classList.add('hidden');
+            hintBtn.innerText = "💡 힌트 보기";
+            document.getElementById('hint-text').innerText = currentWordObj.hint;
+
+            // Timer start if mode enabled
+            if (timerMode !== 'none') {
+                startTimer(parseInt(timerMode));
+            }
+        }
+
+        // Toggle Hint Display
+        function toggleHint() {
+            const hintBox = document.getElementById('hint-box');
+            const hintBtn = document.getElementById('hint-btn');
+            
+            if (hintBox.classList.contains('hidden')) {
+                hintBox.classList.remove('hidden');
+                hintBtn.innerText = "💡 힌트 닫기";
+                playSound('hint');
+            } else {
+                hintBox.classList.add('hidden');
+                hintBtn.innerText = "💡 힌트 보기";
+                playSound('pop');
+            }
+        }
+
+        // Handle Correct/Success Response
+        function handleSuccess() {
+            if (!currentWordObj) {
+                nextWord();
+                return;
+            }
+
+            scoreSuccess++;
+            document.getElementById('score-success').innerText = scoreSuccess;
+            playSound('correct');
+
+            // Trigger Confetti Party Animation
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // Immediately load next word
+            nextWord();
+        }
+
+        // Handle Pass Response
+        function handlePass() {
+            if (!currentWordObj) {
+                nextWord();
+                return;
+            }
+
+            scorePass++;
+            document.getElementById('score-pass').innerText = scorePass;
+            playSound('pass');
+
+            // Load next word
+            nextWord();
+        }
+
+        // Reset Scoreboard Counters
+        function resetScore() {
+            scoreSuccess = 0;
+            scorePass = 0;
+            document.getElementById('score-success').innerText = '0';
+            document.getElementById('score-pass').innerText = '0';
+            playSound('pop');
+        }
+    </script>
+</body>
+</html>
